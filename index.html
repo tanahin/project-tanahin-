@@ -5,18 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tanahin</title>
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    <script>Pi.init({ version: "2.0" })</script>
+    <script>
+      Pi.init({ version: "2.0", sandbox: false });
+    </script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-        .result-box { background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background: #fff; }
+        h1 { margin-bottom: 8px; }
+        p { color: #666; margin-top: 0; }
+        .result-box { background: #f8f9fa; border-radius: 12px; padding: 20px; margin: 20px 0; }
         .result-item { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; }
         .result-item:last-child { margin-bottom: 0; padding-top: 12px; border-top: 2px solid #ddd; font-weight: bold; font-size: 18px; color: #764ba2; }
         .btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .btn:disabled { background: #ccc; cursor: not-allowed; }
-        .processing { display: none; text-align: center; padding: 20px; }
-        .processing.active { display: block; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #764ba2; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -29,73 +29,3 @@
             <span>Luas Tanah:</span>
             <span><b>194.56 m²</b></span>
         </div>
-        <div class="result-item">
-            <span>Ukuran:</span>
-            <span>15.2m x 12.8m</span>
-        </div>
-        <div class="result-item">
-            <span>Akurasi:</span>
-            <span>+/- 5%</span>
-        </div>
-        <div class="result-item">
-            <span>Estimasi RAB Rumah:</span>
-            <span>Rp 2.200.000.000</span>
-        </div>
-    </div>
-
-    <button class="btn" onclick="bayarPi()" id="btnBayar">Download PDF + Excel (1 Pi)</button>
-    
-    <div class="processing" id="processing">
-        <div class="spinner"></div>
-        <p>Menunggu konfirmasi dari Pi Wallet...</p>
-    </div>
-
-    <script>
-        async function bayarPi() {
-            document.getElementById('btnBayar').disabled = true;
-            document.getElementById('processing').classList.add('active');
-
-            try {
-                const payment = await Pi.createPayment({
-                    amount: 0.001,
-                    memo: "Pembelian Laporan Tanahin",
-                    metadata: { orderId: Date.now() },
-                }, {
-                    onReadyForServerApproval: async function(paymentId) {
-                        await fetch('/.netlify/functions/approve', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ paymentId: paymentId })
-                        });
-                    },
-                    onReadyForServerCompletion: async function(paymentId, txid) {
-                        await fetch('/.netlify/functions/complete', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ paymentId: paymentId, txid: txid })
-                        });
-                        alert("Pembayaran berhasil! Link download dikirim.");
-                        document.getElementById('processing').classList.remove('active');
-                        document.getElementById('btnBayar').disabled = false;
-                    },
-                    onCancel: function(paymentId) {
-                        alert("Pembayaran dibatalkan");
-                        document.getElementById('processing').classList.remove('active');
-                        document.getElementById('btnBayar').disabled = false;
-                    },
-                    onError: function(error, payment) {
-                        alert("Error: " + error);
-                        document.getElementById('processing').classList.remove('active');
-                        document.getElementById('btnBayar').disabled = false;
-                    }
-                });
-            } catch (err) {
-                alert("Gagal buat payment: " + err.message);
-                document.getElementById('processing').classList.remove('active');
-                document.getElementById('btnBayar').disabled = false;
-            }
-        }
-    </script>
-
-</body>
-</html>
