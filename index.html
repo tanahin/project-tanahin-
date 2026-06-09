@@ -43,39 +43,51 @@
         async function bayarPi() {
             const btn = document.getElementById('btnBayar');
             btn.disabled = true;
-            btn.innerText = 'Loading...';
+            btn.innerText = 'Memproses...';
+            
             try {
                 const scopes = ['payments'];
-                await Pi.authenticate(scopes, function(incompletePayment) {
-                    console.log('Incomplete payment found:', incompletePayment);
+                
+                // INI KUNCINYA: BERESIN DULU PAYMENT YANG NYANGKUT
+                await Pi.authenticate(scopes, async (incompletePayment) => {
+                    if (incompletePayment) {
+                        console.log('Menyelesaikan payment yang pending:', incompletePayment.identifier);
+                        await fetch('/.netlify/functions/complete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                paymentId: incompletePayment.identifier, 
+                                txid: incompletePayment.transaction.txid 
+                            })
+                        });
+                    }
                 });
+
+                // KALO UDAH BERSIH, BARU BIKIN PAYMENT BARU
                 await Pi.createPayment({
                     amount: 0.001,
                     memo: "Pembelian Laporan Tanahin",
                     metadata: { orderId: Date.now() },
                 }, {
-                    onReadyForServerApproval: async function(paymentId) {
+                    onReadyForServerApproval: async (paymentId) => {
                         await fetch('/.netlify/functions/approve', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ paymentId: paymentId })
                         });
                     },
-                    onReadyForServerCompletion: async function(paymentId, txid) {
+                    onReadyForServerCompletion: async (paymentId, txid) => {
                         await fetch('/.netlify/functions/complete', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ paymentId: paymentId, txid: txid })
                         });
-                        alert("Pembayaran berhasil! Cek email untuk link download.");
+                        alert("Pembayaran berhasil! No 10 di Pi Developer Portal udah ijo.");
                     },
-                    onCancel: function(paymentId) {
-                        alert("Pembayaran dibatalkan");
-                    },
-                    onError: function(error, payment) {
-                        alert("Error: " + error);
-                    }
+                    onCancel: (paymentId) => { alert("Pembayaran dibatalkan"); },
+                    onError: (error, payment) => { alert("Error: " + error); }
                 });
+
             } catch (err) {
                 alert("Gagal: " + err.message);
             } finally {
