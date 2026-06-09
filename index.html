@@ -1,40 +1,42 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tanahin - Ukur Tanah Pakai AI</title>
-    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+// FUNGSI BUAT BAYAR PI
+async function bayarPi() {
+  try {
+    const payment = await Pi.createPayment({
+      amount: 0.001, // ganti sesuai harga lo
+      memo: "Pembelian Tanahin", // ganti memo lo
+      metadata: { orderId: "12345" }, // ganti metadata lo
+    }, {
+      // INI YANG PALING PENTING - onReadyForServerApproval
+      onReadyForServerApproval: async function(paymentId) {
+        console.log("Payment siap di-approve:", paymentId);
+        
+        // PANGGIL FUNGSI NETLIFY YANG BENER
+        const res = await fetch('/.netlify/functions/approve', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ paymentId: paymentId })
+        });
+
+        if (!res.ok) {
+          throw new Error('Gagal approve ke server');
         }
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            color: #764ba2;
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        .header p {
-            color: #666;
+        
+        console.log("Approve sukses");
+      },
+
+      // INI BUAT COMPLETE SETELAH USER BAYAR
+      onReadyForServerCompletion: async function(paymentId, txid) {
+        console.log("Payment siap di-complete:", paymentId, txid);
+        
+        // PANGGIL FUNGSI COMPLETE
+        const res = await fetch('/.netlify/functions/complete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({             color: #666;
             font-size: 14px;
         }
         .result-box {
