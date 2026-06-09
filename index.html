@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tanahin</title>
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    <script>
-      Pi.init({ version: "2.0", sandbox: false });
-    </script>
+    <script>Pi.init({ version: "2.0", sandbox: false });</script>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background: #fff; }
         h1 { margin-bottom: 8px; }
@@ -20,12 +18,71 @@
     </style>
 </head>
 <body>
-
     <h1>🏡 Tanahin</h1>
     <p>Hasil Pengukuran Tanah + RAB Otomatis</p>
-
     <div class="result-box">
         <div class="result-item">
             <span>Luas Tanah:</span>
             <span><b>194.56 m²</b></span>
         </div>
+        <div class="result-item">
+            <span>Ukuran:</span>
+            <span>15.2m x 12.8m</span>
+        </div>
+        <div class="result-item">
+            <span>Akurasi:</span>
+            <span>+/- 5%</span>
+        </div>
+        <div class="result-item">
+            <span>Estimasi RAB Rumah:</span>
+            <span>Rp 2.200.000.000</span>
+        </div>
+    </div>
+    <button class="btn" onclick="bayarPi()" id="btnBayar">Download PDF + Excel (1 Pi)</button>
+    <script>
+        async function bayarPi() {
+            const btn = document.getElementById('btnBayar');
+            btn.disabled = true;
+            btn.innerText = 'Loading...';
+            try {
+                const scopes = ['payments'];
+                await Pi.authenticate(scopes, function(incompletePayment) {
+                    console.log('Incomplete payment found:', incompletePayment);
+                });
+                await Pi.createPayment({
+                    amount: 0.001,
+                    memo: "Pembelian Laporan Tanahin",
+                    metadata: { orderId: Date.now() },
+                }, {
+                    onReadyForServerApproval: async function(paymentId) {
+                        await fetch('/.netlify/functions/approve', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ paymentId: paymentId })
+                        });
+                    },
+                    onReadyForServerCompletion: async function(paymentId, txid) {
+                        await fetch('/.netlify/functions/complete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ paymentId: paymentId, txid: txid })
+                        });
+                        alert("Pembayaran berhasil! Cek email untuk link download.");
+                    },
+                    onCancel: function(paymentId) {
+                        alert("Pembayaran dibatalkan");
+                    },
+                    onError: function(error, payment) {
+                        alert("Error: " + error);
+                    }
+                });
+            } catch (err) {
+                alert("Gagal: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Download PDF + Excel (1 Pi)';
+            }
+        }
+    </script>
+</body>
+</html>
