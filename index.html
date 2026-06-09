@@ -1,40 +1,57 @@
-// FUNGSI BUAT BAYAR PI
-async function bayarPi() {
-  try {
-    const payment = await Pi.createPayment({
-      amount: 0.001, // ganti sesuai harga lo
-      memo: "Pembelian Tanahin", // ganti memo lo
-      metadata: { orderId: "12345" }, // ganti metadata lo
-    }, {
-      // INI YANG PALING PENTING - onReadyForServerApproval
-      onReadyForServerApproval: async function(paymentId) {
-        console.log("Payment siap di-approve:", paymentId);
-        
-        // PANGGIL FUNGSI NETLIFY YANG BENER
-        const res = await fetch('/.netlify/functions/approve', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tanahin</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script>Pi.init({ version: "2.0" })</script>
+</head>
+<body>
+
+  <!-- HTML LO YANG ADA TOMBOL BAYAR -->
+  <button onclick="bayarPi()">Bayar 1 Pi</button>
+
+  <!-- KODE JAVASCRIPT HARUS DI DALAM <script> TAG -->
+  <script>
+    // FUNGSI BUAT BAYAR PI 
+    async function bayarPi() {
+      try { 
+        const payment = await Pi.createPayment({
+          amount: 0.001,
+          memo: "Pembelian Tanahin",
+          metadata: { orderId: "12345" },
+        }, {
+          onReadyForServerApproval: async function(paymentId) {
+            const res = await fetch('/.netlify/functions/approve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId: paymentId })
+            });
+            if (!res.ok) throw new Error('Gagal approve ke server');
           },
-          body: JSON.stringify({ paymentId: paymentId })
+          onReadyForServerCompletion: async function(paymentId, txid) {
+            const res = await fetch('/.netlify/functions/complete', {
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId: paymentId, txid: txid })
+            });
+            if (!res.ok) throw new Error('Gagal complete ke server');
+            alert("Pembayaran berhasil!");
+          },
+          onCancel: function(paymentId) {
+            alert("Pembayaran dibatalkan");
+          },
+          onError: function(error, payment) {
+            alert("Error: " + error);
+          }
         });
+      } catch (err) {
+        alert("Gagal buat payment: " + err.message);
+      }
+    }
+  </script>
 
-        if (!res.ok) {
-          throw new Error('Gagal approve ke server');
-        }
-        
-        console.log("Approve sukses");
-      },
-
-      // INI BUAT COMPLETE SETELAH USER BAYAR
-      onReadyForServerCompletion: async function(paymentId, txid) {
-        console.log("Payment siap di-complete:", paymentId, txid);
-        
-        // PANGGIL FUNGSI COMPLETE
-        const res = await fetch('/.netlify/functions/complete', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+</body>
+</html>            'Content-Type': 'application/json',
           },
           body: JSON.stringify({             color: #666;
             font-size: 14px;
